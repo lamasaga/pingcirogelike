@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA 支持 -->
+    <meta name="theme-color" content="#f59e0b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="拼词肉鸽">
+    <meta name="application-name" content="拼词肉鸽">
+    <meta name="description" content="一款融合Roguelike元素的单词拼写策略游戏">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS 图标 (添加到主屏幕时显示) -->
+    <link rel="apple-touch-icon" href="icons/icon-192.svg">
+    <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+    
+    <title>拼词肉鸽 (Word Roguelike)</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/search.css">
+    <link rel="stylesheet" href="css/start.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- 顶部状态栏 -->
+        <header class="game-header">
+            <div class="top-bar">
+                <button id="btn-dictionary" class="btn-secondary">查看词库</button>
+                <div class="round-indicator">
+                    <span class="round-label">关卡</span>
+                    <span id="round-current" class="round-current">1</span>
+                    <span class="round-max">/ <span id="round-max">15</span></span>
+                </div>
+                <button id="btn-help" class="btn-secondary">帮助</button>
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-box money-box">
+                    <span class="icon">💰</span>
+                    <span id="money-val">0</span>
+                </div>
+                <div class="stat-box score-box">
+                    <div class="label">当前分数 / 目标</div>
+                    <div class="value">
+                        <span id="score-val">0</span> / <span id="target-val">50</span>
+                    </div>
+                </div>
+                <!-- 新的饰品槽设计 -->
+                <div class="trinket-panel">
+                    <div class="trinket-slot" title="饰品位">+</div>
+                    <div class="trinket-slot" title="饰品位"></div>
+                    <div class="trinket-slot" title="饰品位"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 商店区域 -->
+        <section class="shop-section">
+            <div class="shop-header">
+                <div class="shop-tabs">
+                    <button id="btn-tab-shop" class="tab-btn active">商店 (花费 $3)</button>
+                    <button id="btn-tab-storage" class="tab-btn">备选区</button>
+                </div>
+                <button id="btn-reroll" class="btn-small">刷新 ($1)</button>
+            </div>
+            <div id="shop-container" class="shop-container">
+                <!-- 动态生成字母 -->
+            </div>
+        </section>
+
+        <!-- 拼词网格区域 -->
+        <section class="grid-section">
+            <div id="grid-container" class="grid-container">
+                <!-- 动态生成 8x8 网格 -->
+            </div>
+        </section>
+
+        <!-- 底部操作区 -->
+        <footer class="game-footer">
+            <button id="btn-submit" class="btn-primary">
+                结束回合 <span class="icon">↵</span>
+            </button>
+        </footer>
+    </div>
+
+    <!-- Start Screen Modal -->
+    <div id="start-screen" class="modal">
+        <div class="modal-content start-content">
+            <div class="start-header">
+                <h1>🧩 拼词肉鸽</h1>
+                <p class="subtitle">Word Roguelike</p>
+            </div>
+            
+            <div class="start-body">
+                <p class="intro-text">
+                    欢迎来到单词构建的世界！<br>
+                    利用手中的字母卡牌，在网格中拼凑出单词，<br>
+                    赚取金币，挑战更高的目标分数。
+                </p>
+
+                <!-- 配色选择 -->
+                <div class="theme-section">
+                    <h3>选择配色</h3>
+                    <div class="theme-buttons">
+                        <button class="btn-theme active" data-theme="amber" title="琥珀色">
+                            <span class="theme-preview amber"></span>
+                            <span class="theme-name">琥珀</span>
+                        </button>
+                        <button class="btn-theme" data-theme="rose" title="粉色">
+                            <span class="theme-preview rose"></span>
+                            <span class="theme-name">玫瑰</span>
+                        </button>
+                        <button class="btn-theme" data-theme="sky" title="浅蓝">
+                            <span class="theme-preview sky"></span>
+                            <span class="theme-name">天空</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="difficulty-section">
+                    <h3>选择难度</h3>
+                    <div class="difficulty-buttons">
+                        <button class="btn-difficulty" data-diff="EASY">
+                            <span class="diff-name">简单</span>
+                            <span class="diff-desc">30分开局，每关 +50%</span>
+                        </button>
+                        <button class="btn-difficulty" data-diff="MEDIUM">
+                            <span class="diff-name">中等</span>
+                            <span class="diff-desc">30分开局，每关 +75%</span>
+                        </button>
+                        <button class="btn-difficulty" data-diff="HARD">
+                            <span class="diff-name">困难</span>
+                            <span class="diff-desc">40分开局，每关 +75%</span>
+                        </button>
+                        <button class="btn-difficulty diff-hell" data-diff="HELL">
+                            <span class="diff-name">地狱之路 🔥</span>
+                            <span class="diff-desc">40分开局，每关 +100%</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dictionary Modal -->
+    <div id="dictionary-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📖 单词词典</h2>
+                <button id="btn-close-dict" class="btn-close">×</button>
+            </div>
+            <div class="search-bar">
+                <div class="search-input-group">
+                    <select id="dict-length-filter" class="search-select">
+                        <option value="">长度: 全部</option>
+                        <option value="2">2个字母</option>
+                        <option value="3">3个字母</option>
+                        <option value="4">4个字母</option>
+                        <option value="5">5个字母</option>
+                        <option value="6">6个字母</option>
+                        <option value="7">7个字母</option>
+                        <option value="8">8个字母</option>
+                    </select>
+                    <div class="search-input-wrapper">
+                        <input type="text" id="dict-search-input" placeholder="搜索单词..." />
+                        <button id="btn-clear-search" class="btn-clear hidden">×</button>
+                    </div>
+                </div>
+            </div>
+            <div id="dict-results" class="dict-results">
+                <!-- Results will be injected here -->
+            </div>
+            <div class="dict-footer">
+                <span id="dict-stats">加载中...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relic Selection Modal -->
+    <div id="relic-selection-modal" class="modal hidden">
+        <div class="modal-content relic-modal-content">
+            <div class="modal-header">
+                <h2>🎁 获得遗物</h2>
+                <!-- <p class="subtitle" style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">选择一件物品来增强你的能力</p> -->
+            </div>
+            <div id="relic-options-container" class="relic-options-container">
+                <!-- 动态注入遗物卡片 -->
+            </div>
+            <div class="modal-footer" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 12px;">
+                三选一：点击卡片直接获取
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎓 新手指南</h2>
+                <button id="btn-close-help" class="btn-close">×</button>
+            </div>
+            <div class="help-content">
+                <div class="help-section">
+                    <h3>🎯 游戏目标</h3>
+                    <p>购买字母，拖入网格，拼凑出单词赚取分数。达到每关的目标分数即可通关！</p>
+                </div>
+                
+                <div class="help-section">
+                    <h3>🕹️ 基本操作</h3>
+                    <ul>
+                        <li><strong>购买 ($3)</strong>：拖拽商店里的字母到网格中。</li>
+                        <li><strong>移动</strong>：在网格内自由拖动字母调整位置。</li>
+                        <li><strong>刷新 ($1)</strong>：不喜欢当前的字母？花钱刷新一批！</li>
+                    </ul>
+                </div>
+
+                <div class="help-section highlight">
+                    <h3>📈 积分规则 (高分秘籍)</h3>
+                    <p>总分 = 单词基础分 × 长度倍率 × <strong>交叉倍率</strong></p>
+                    <div class="formula-box">
+                        <p>🔹 <strong>基础分</strong>：每个字母左下角的数字之和。</p>
+                        <p>🔹 <strong>长度加成</strong>：单词越长，倍率越高！(3个字=3倍，4个字=4倍)</p>
+                        <p>🔥 <strong>交叉奖励</strong>：如果一个字母同时被横向和纵向单词使用，该单词得分直接 <strong>翻倍</strong>！尽量构建十字交叉的单词网。</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h3>💡 小贴士</h3>
+                    <p>- 没钱了？尝试提交现有的单词，虽然可能不够过关，但能赚点小钱。</p>
+                    <p>- 善用“词典”查询功能，不仅能查词，还能发现高分词汇。</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-close-help-action" class="btn-primary">我明白了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Modal (胜利界面) -->
+    <div id="victory-modal" class="modal hidden">
+        <div class="modal-content victory-content">
+            <div class="victory-header">
+                <div class="victory-icon">🏆</div>
+                <h1>恭喜通关！</h1>
+                <p class="victory-subtitle">你成功征服了所有关卡</p>
+            </div>
+            <div class="victory-body">
+                <div class="victory-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">难度</span>
+                        <span id="victory-difficulty" class="stat-value">中等</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">通关关卡</span>
+                        <span id="victory-rounds" class="stat-value">15</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最终金币</span>
+                        <span id="victory-money" class="stat-value">0</span>
+                    </div>
+                </div>
+                <p class="victory-message">
+                    词汇大师！你的单词拼接能力已经达到顶峰！<br>
+                    准备好挑战更高难度了吗？
+                </p>
+            </div>
+            <div class="victory-footer">
+                <button id="btn-victory-restart" class="btn-primary btn-victory">
+                    再来一局 🎮
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入模块化脚本 -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

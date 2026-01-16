@@ -1,0 +1,26 @@
+{
+    "name": "拼词肉鸽",
+    "short_name": "拼词肉鸽",
+    "description": "一款融合Roguelike元素的单词拼写策略游戏",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#fefce8",
+    "theme_color": "#f59e0b",
+    "icons": [
+        {
+            "src": "icons/icon-192.svg",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "icons/icon-512.svg",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "categories": ["games", "education"],
+    "lang": "zh-CN"
+}
