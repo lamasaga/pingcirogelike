@@ -2,6 +2,8 @@
 
 　　**源码仓库**：[github.com/lamasaga/pingcirogelike](https://github.com/lamasaga/pingcirogelike)
 
+　　**服务器部署**（`/srv/pingchi`、IP 子路径访问等）：见仓库内 **[拼词肉鸽-部署与更新.md](./拼词肉鸽-部署与更新.md)**。
+
 　　一款在浏览器中运行的 **英文拼词 + Roguelike 构筑** 小游戏：从商店购入字母，拖到棋盘上组成横向或纵向的合法单词，利用 **遗物（Relics）** 叠加规则打出高分，在限定关卡内达成目标分数即可通关。  
 
 　　界面与元数据以中文为主，单词与词库为英文；支持 **PWA**（见根目录 `manifest.json`），可添加到主屏幕离线游玩（仍需本地 HTTP 服务或托管站点以正常加载 ES Module）。
