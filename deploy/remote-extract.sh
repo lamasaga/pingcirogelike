@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# 在服务器上执行：解压上传的 zip 到 /srv/pingchi，安装 nginx snippet，检测是否已 include
+# 解压上传包到 /srv/pingchi；支持 .tar.gz（推荐，UTF-8 文件名）或 .zip（遗留）
 set -euo pipefail
-ZIP="${1:?用法: bash remote-extract.sh /tmp/pingchi-deploy.zip}"
+ARCHIVE="${1:?用法: bash remote-extract.sh /tmp/pingchi-deploy.tar.gz}"
 
 sudo apt-get update -qq
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unzip
 
 sudo rm -rf /srv/pingchi
 sudo mkdir -p /srv/pingchi
 sudo chown ubuntu:ubuntu /srv/pingchi
 
-unzip -o "$ZIP" -d /srv/pingchi
+if [[ "$ARCHIVE" == *.tar.gz ]] || [[ "$ARCHIVE" == *.tgz ]]; then
+  tar -xzf "$ARCHIVE" -C /srv/pingchi
+elif [[ "$ARCHIVE" == *.zip ]]; then
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq unzip
+  unzip -o "$ARCHIVE" -d /srv/pingchi
+else
+  echo "不支持的压缩包类型: $ARCHIVE （请使用 .tar.gz 或 .zip）"
+  exit 1
+fi
+
 chmod -R a+rX /srv/pingchi
 
 sudo mkdir -p /etc/nginx/snippets
