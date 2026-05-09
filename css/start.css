@@ -101,14 +101,35 @@
 .btn-difficulty[data-diff="EASY"]:hover { border-color: #10b981; background: #ecfdf5; }
 .btn-difficulty[data-diff="MEDIUM"]:hover { border-color: var(--primary-color); background: var(--primary-light, #fffbeb); }
 .btn-difficulty[data-diff="HARD"]:hover { border-color: #ef4444; background: #fef2f2; }
-.btn-difficulty[data-diff="HELL"] { border-color: #1f2937; background: #1f2937; }
-.btn-difficulty[data-diff="HELL"] .diff-name,
-.btn-difficulty[data-diff="HELL"] .diff-desc { color: #f3f4f6; }
-.btn-difficulty[data-diff="HELL"]:hover { 
+
+/* HELL难度 - 仅在启用时使用深色样式 */
+.btn-difficulty[data-diff="HELL"]:not(.disabled) { border-color: #1f2937; background: #1f2937; }
+.btn-difficulty[data-diff="HELL"]:not(.disabled) .diff-name,
+.btn-difficulty[data-diff="HELL"]:not(.disabled) .diff-desc { color: #f3f4f6; }
+.btn-difficulty[data-diff="HELL"]:not(.disabled):hover { 
     background: #000; 
     border-color: #000;
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 10px 20px -5px rgba(0,0,0,0.5);
+}
+
+/* 禁用状态的难度按钮 */
+.btn-difficulty.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    border-style: dashed;
+}
+.btn-difficulty.disabled .diff-name,
+.btn-difficulty.disabled .diff-desc {
+    color: #94a3b8 !important;
+}
+.btn-difficulty.disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
 }
 
 /* ===== Theme Selection Styles ===== */

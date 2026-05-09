@@ -24,6 +24,9 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/start.css">
+    <link rel="stylesheet" href="css/desktop.css">
+    <link rel="stylesheet" href="css/ui_patch.css">
+    <link rel="stylesheet" href="css/relic_icons.css">
 </head>
 <body>
 
@@ -69,22 +72,47 @@
                 </div>
                 <button id="btn-reroll" class="btn-small">刷新 ($1)</button>
             </div>
-            <div id="shop-container" class="shop-container">
-                <!-- 动态生成字母 -->
+            
+            <div id="shop-wrapper">
+                 <!-- 商店容器 -->
+                <div id="shop-container" class="shop-container">
+                    <!-- 动态生成字母 -->
+                </div>
+                
+                <!-- 备选区标签 (PC only) -->
+                <div class="storage-label hidden-mobile">备选区</div>
+
+                <!-- 备选区容器 -->
+                <div id="storage-container" class="shop-container hidden-mobile">
+                    <!-- 动态生成字母 -->
+                </div>
             </div>
         </section>
 
         <!-- 拼词网格区域 -->
         <section class="grid-section">
-            <div id="grid-container" class="grid-container">
-                <!-- 动态生成 8x8 网格 -->
+            <div class="grid-wrapper">
+                <div id="grid-container" class="grid-container">
+                    <!-- 动态生成 8x8 网格 -->
+                </div>
+                
+                <!-- 快照操作栏 -->
+                <div class="snapshot-controls">
+                    <button id="btn-save-snap" class="btn-snap" title="保存当前拼词状态">
+                        💾 保存
+                    </button>
+                    <button id="btn-load-snap" class="btn-snap" title="恢复保存的状态" disabled>
+                        ⏪ 恢复
+                    </button>
+                    <span id="snap-msg" class="snap-msg"></span>
+                </div>
             </div>
         </section>
 
         <!-- 底部操作区 -->
         <footer class="game-footer">
             <button id="btn-submit" class="btn-primary">
-                结束回合 <span class="icon">↵</span>
+                结束回合 
             </button>
         </footer>
     </div>
@@ -98,50 +126,59 @@
             </div>
             
             <div class="start-body">
-                <p class="intro-text">
-                    欢迎来到单词构建的世界！<br>
-                    利用手中的字母卡牌，在网格中拼凑出单词，<br>
-                    赚取金币，挑战更高的目标分数。
-                </p>
-
-                <!-- 配色选择 -->
-                <div class="theme-section">
-                    <h3>选择配色</h3>
-                    <div class="theme-buttons">
-                        <button class="btn-theme active" data-theme="amber" title="琥珀色">
-                            <span class="theme-preview amber"></span>
-                            <span class="theme-name">琥珀</span>
-                        </button>
-                        <button class="btn-theme" data-theme="rose" title="粉色">
-                            <span class="theme-preview rose"></span>
-                            <span class="theme-name">玫瑰</span>
-                        </button>
-                        <button class="btn-theme" data-theme="sky" title="浅蓝">
-                            <span class="theme-preview sky"></span>
-                            <span class="theme-name">天空</span>
-                        </button>
-                    </div>
+                <!-- 左侧: 介绍 -->
+                <div class="start-left">
+                    <p class="intro-text">
+                        欢迎来到单词构建的世界！<br>
+                        利用手中的字母卡牌，在网格中拼凑出单词，<br>
+                        赚取金币，挑战更高的目标分数。
+                    </p>
                 </div>
 
-                <div class="difficulty-section">
-                    <h3>选择难度</h3>
-                    <div class="difficulty-buttons">
-                        <button class="btn-difficulty" data-diff="EASY">
-                            <span class="diff-name">简单</span>
-                            <span class="diff-desc">30分开局，每关 +50%</span>
-                        </button>
-                        <button class="btn-difficulty" data-diff="MEDIUM">
-                            <span class="diff-name">中等</span>
-                            <span class="diff-desc">30分开局，每关 +75%</span>
-                        </button>
-                        <button class="btn-difficulty" data-diff="HARD">
-                            <span class="diff-name">困难</span>
-                            <span class="diff-desc">40分开局，每关 +75%</span>
-                        </button>
-                        <button class="btn-difficulty diff-hell" data-diff="HELL">
-                            <span class="diff-name">地狱之路 🔥</span>
-                            <span class="diff-desc">40分开局，每关 +100%</span>
-                        </button>
+                <!-- 右侧: 选项 -->
+                <div class="start-right">
+                    <!-- 配色选择 -->
+                    <div class="theme-section">
+                        <h3>选择配色</h3>
+                        <div class="theme-buttons">
+                            <button class="btn-theme active" data-theme="amber" title="琥珀色">
+                                <span class="theme-preview amber"></span>
+                                <span class="theme-name">琥珀</span>
+                            </button>
+                            <button class="btn-theme" data-theme="rose" title="粉色">
+                                <span class="theme-preview rose"></span>
+                                <span class="theme-name">玫瑰</span>
+                            </button>
+                            <button class="btn-theme" data-theme="sky" title="浅蓝">
+                                <span class="theme-preview sky"></span>
+                                <span class="theme-name">天空</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="difficulty-section">
+                        <h3>选择难度模式</h3>
+                        <div class="difficulty-buttons">
+                            <!-- 基础难度 -->
+                            <button class="btn-difficulty" data-diff="EASY">
+                                <span class="diff-name">简单难度</span>
+                                <span class="diff-desc">适合新手，分数增长平缓</span>
+                            </button>
+                            <button class="btn-difficulty" data-diff="MEDIUM">
+                                <span class="diff-name">普通难度</span>
+                                <span class="diff-desc">标准体验，挑战与乐趣并存</span>
+                            </button>
+                            
+                            <!-- 特殊模式 (暂时禁用) -->
+                            <button class="btn-difficulty disabled" data-diff="HELL" disabled title="开发中...">
+                                <span class="diff-name">🔥 地狱之路 (开发中)</span>
+                                <span class="diff-desc">极高难度，独特遗物机制</span>
+                            </button>
+                            <button class="btn-difficulty disabled" data-diff="GIANT" disabled title="开发中...">
+                                <span class="diff-name">👑 巨人之路 (开发中)</span>
+                                <span class="diff-desc">无尽排名模式，全随机构筑</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -280,5 +317,10 @@
 
     <!-- 引入模块化脚本 -->
     <script type="module" src="js/main.js"></script>
+
+    <!-- 智能提示 Tooltip (动态生成，绝对定位) -->
+    <div id="smart-tooltip" class="smart-tooltip hidden">
+        <!-- 内容由 JS 填充 -->
+    </div>
 </body>
 </html>

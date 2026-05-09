@@ -1,0 +1,42 @@
+
+/* Relic Icon Styles */
+.relic-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 确保填满圆形，图片若非正方形则裁剪 */
+    border-radius: 50%;
+    display: block;
+}
+
+.trinket-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Override existing relic-icon-wrapper to remove default styles if img is present */
+.relic-icon-wrapper {
+    overflow: hidden; /* Ensure image stays within circle */
+    background: transparent !important; /* 让图片的背景透出来，或者由 rarity 决定边框 */
+    border: 2px solid transparent;
+    padding: 0; /* 图片占满 */
+}
+
+/* 保持 Rarity 边框颜色 */
+.relic-card.common .relic-icon-wrapper { border-color: #cbd5e1; }
+.relic-card.rare .relic-icon-wrapper { border-color: #93c5fd; }
+.relic-card.epic .relic-icon-wrapper { border-color: #f9a8d4; }
+.relic-card.legendary .relic-icon-wrapper { border-color: #fcd34d; }
+
+.trinket-slot.has-relic {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* 移除 trinket-slot 的 icon-text 默认居中，因为 img 是 block */
+.trinket-slot img {
+    width: 100%;
+    height: 100%;
+}

@@ -28,16 +28,15 @@ class GameState {
             highestRoundScore: 0
         };
         
-        // 备选区/仓库 (固定 8 个槽位)
-        this.storage = Array(8).fill(null);
+        // 备选区/仓库 (改为动态数组，初始为空)
+        this.storage = [];
+        this.storageCapacity = 12; // 默认容量
     }
 
     // 添加到备选区
     addToStorage(letter) {
-        // 找第一个空位
-        const index = this.storage.findIndex(slot => slot === null);
-        if (index !== -1) {
-            this.storage[index] = letter;
+        if (this.storage.length < this.storageCapacity) {
+            this.storage.push(letter);
             this.notify();
             return true;
         }
@@ -47,8 +46,7 @@ class GameState {
     // 从备选区移除
     removeFromStorage(index) {
         if (index >= 0 && index < this.storage.length) {
-            const letter = this.storage[index];
-            this.storage[index] = null;
+            const letter = this.storage.splice(index, 1)[0];
             this.notify();
             return letter;
         }
@@ -101,6 +99,12 @@ class GameState {
 
         this.difficultyConfig = config;
         this.resetGame();
+        
+        // 特殊模式初始化逻辑
+        if (difficultyKey === 'HELL') {
+            this.money = 21; // 地狱之路初始 21 金币
+            // TODO: 设置 3 次免费刷新 (需要在 ShopSystem 中实现)
+        }
     }
 
     // 检查回合结束条件
@@ -122,13 +126,23 @@ class GameState {
                 return { success: true, victory: true };
             }
             
-            // 根据难度增长率计算新目标分 (向上取整)
-            this.targetScore = Math.ceil(this.targetScore * this.difficultyConfig.growthRate);
+            // 根据难度配置计算新目标分
+            if (typeof this.difficultyConfig.targetScoreFunc === 'function') {
+                this.targetScore = this.difficultyConfig.targetScoreFunc(this.round);
+            } else {
+                // Fallback (虽然不应该发生)
+                this.targetScore = Math.ceil(this.targetScore * (this.difficultyConfig.growthRate || 1.5));
+            }
             
-            // 恢复/奖励金币：根据需求恢复7金币，这里实现为增加7金币
-            this.addMoney(7); 
+            // 恢复/奖励金币：基础 7 金币
+            // 新规则：如果本回合没有购买任何字母，额外增加 1 块钱 (由外部传入标记或统计)
+            // 暂时只实现基础 7 块，进阶逻辑后续添加
+            let reward = 7;
+            this.addMoney(reward); 
             
             // 检查是否触发遗物选择 (第 2, 4, 7, 11 回合开始前)
+            // 修改为：地狱模式每轮都有机会刷新 (TODO)
+            // 目前保持基础规则
             const triggerRelic = [2, 4, 7, 11].includes(this.round);
 
             this.notify();
@@ -145,28 +159,24 @@ class GameState {
     resetGame() {
         this.money = CONFIG.INITIAL_MONEY;
         this.currentScore = 0;
-        // 使用当前难度配置的初始分
-        this.targetScore = this.difficultyConfig.initialScore;
         this.round = 1;
+        
+        // 计算初始目标分 (Round 1)
+        if (typeof this.difficultyConfig.targetScoreFunc === 'function') {
+            this.targetScore = this.difficultyConfig.targetScoreFunc(1);
+        } else {
+             this.targetScore = this.difficultyConfig.initialScore || 30;
+        }
+
         this.gameStatus = 'playing'; // 重置后直接开始 playing
         
         // 重置遗物系统
-        // 这里需要引入 relicSystem，但为了避免循环引用，我们可以通过全局事件或注入方式
-        // 但最简单的方式是直接在这里引入（ES Module 支持循环引用，只要不是初始化时立即调用）
-        // 或者让外部控制器负责重置 relicSystem。这里我们假设外部控制器会处理，或者使用 notify。
-        // 为了确保逻辑完整，我们在 GameState 中触发一个 reset 事件
-        // this.notify('reset'); // 简单的 notify 不带参数，但我们可以约定
-        
-        // 修正：在 main.js 或 UI 层调用 relicSystem.reset() 会更好
-        // 但既然 GameState 是核心，我们最好在这里处理。
-        // 由于循环引用问题，我们可以在 Renderer 中监听 reset。
-        // 也可以在这里使用动态 import
         import('./RelicSystem.js').then(module => {
             module.relicSystem.reset();
         });
 
         // 重置备选区
-        this.storage = Array(8).fill(null); 
+        this.storage = []; 
 
         this.notify();
     }

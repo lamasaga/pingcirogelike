@@ -1,0 +1,148 @@
+/* Snapshot Controls */
+.grid-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.snapshot-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.btn-snap {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-snap:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-snap:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.snap-msg {
+    font-size: 12px;
+    color: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+/* Smart Tooltip */
+.smart-tooltip {
+    position: absolute;
+    background: rgba(30, 41, 59, 0.95); /* 深色背景 */
+    color: #f8fafc;
+    padding: 8px; /* Reduced padding for multi-section */
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    pointer-events: none; /* 不阻挡鼠标 */
+    z-index: 9999;
+    min-width: 160px;
+    max-width: 240px; /* Increased width to accommodate meanings */
+    font-size: 13px;
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(4px);
+}
+
+.smart-tooltip.hidden {
+    display: none;
+}
+
+.tooltip-section {
+    padding: 4px;
+}
+
+.tooltip-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 4px 0;
+}
+
+.tooltip-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--primary-color); /* Amber */
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 4px;
+    /* Allow multi-line if too long, but try to keep inline */
+    white-space: normal;
+    line-height: 1.3;
+}
+
+.tooltip-meaning {
+    font-size: 13px;
+    font-weight: 400;
+    color: #cbd5e1;
+    margin-left: 6px;
+    display: inline; /* Keep inline */
+}
+
+.tooltip-score {
+    color: #94a3b8;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.tooltip-breakdown {
+    margin-bottom: 8px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    padding-top: 4px;
+}
+
+.break-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    font-size: 12px;
+}
+
+.break-desc {
+    color: #cbd5e1;
+}
+
+.break-val {
+    color: #4ade80; /* Green for buffs */
+    font-weight: 600;
+}
+
+.tooltip-total {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: right;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 6px;
+    margin-top: 4px;
+}
+
+/* Disabled Difficulty Buttons - 样式已移至 start.css */
+
+/* 备选区扩容样式 (Desktop) */
+@media (min-width: 768px) {
+    #storage-container {
+        /* 允许更多行 */
+        max-height: 200px;
+        overflow-y: auto;
+    }
+}

@@ -1,0 +1,217 @@
+/* Desktop Layout Adaptation */
+@media (min-width: 768px) {
+    body {
+        /* Maintain theme background or use a neutral one? 
+           Using theme background for consistency. */
+        /* background-color: #f1f5f9; Remove this to use var(--bg-color) from style.css */
+        padding: 20px; /* Add some breathing room around the app */
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        overflow: hidden; /* Prevent body scroll, let app handle it */
+    }
+
+    .app-container {
+        max-width: 1200px;
+        width: 100%;
+        height: calc(100vh - 40px); /* Account for body padding */
+        max-height: 900px; /* Reasonable max height */
+        border-radius: 16px; /* Larger radius for PC window feel */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        
+        /* Grid Layout */
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+            "header grid"
+            "shop   grid"
+            "footer grid";
+    }
+
+    /* Left Sidebar: Header */
+    .game-header {
+        grid-area: header;
+        border-right: 1px solid #e2e8f0;
+        z-index: 20;
+    }
+
+    /* Left Sidebar: Shop */
+    .shop-section {
+        grid-area: shop;
+        border-right: 1px solid #e2e8f0;
+        z-index: 15;
+        overflow-y: auto; /* Allow scrolling if list is long */
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Left Sidebar: Footer */
+    .game-footer {
+        grid-area: footer;
+        border-right: 1px solid #e2e8f0;
+        border-top: 1px solid #e2e8f0; /* Clear separation */
+        z-index: 20;
+        
+        /* Make it fill the remaining height but align content to bottom */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+
+    /* Right Main Area: Grid */
+    .grid-section {
+        grid-area: grid;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-color);
+        padding: 40px;
+        
+        /* Custom scrollbar for grid section if needed */
+        overflow: auto;
+    }
+
+    /* Adjustments for Sidebar Content */
+    .stats-panel {
+        /* Ensure stats fit in 380px */
+        gap: 12px;
+    }
+
+    /* Shop & Storage Combined View */
+    .shop-header {
+        /* Hide tabs on desktop since we show both */
+        display: none;
+    }
+    
+    .shop-header .shop-tabs {
+        display: none; 
+    }
+    
+    /* We still want the refresh button, so let's keep header but hide tabs? */
+    /* Wait, refresh button is inside shop-header. Let's styling specific parts. */
+    .shop-header {
+        display: flex;
+        justify-content: flex-end; /* Only show refresh button on right */
+        padding-bottom: 0;
+    }
+    
+    .shop-tabs {
+        display: none !important; /* Force hide tabs */
+    }
+
+    #shop-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        flex-grow: 1;
+        padding-bottom: 20px;
+    }
+
+    .shop-container {
+        /* Ensure shop slots look good */
+        justify-content: flex-start;
+        gap: 10px;
+        /* Remove fixed height, let it grow based on content */
+        min-height: auto;
+    }
+    
+    /* Force display both containers */
+    #shop-container, #storage-container {
+        display: flex !important;
+        flex-wrap: wrap; /* 确保换行 */
+    }
+    
+    /* 备选区特殊样式：明确的网格背景，提示容量 */
+    #storage-container {
+        background: rgba(0, 0, 0, 0.03);
+        border: 2px dashed #cbd5e1;
+        min-height: 120px; /* 至少两行的高度 */
+        align-content: flex-start; /* 内容靠上 */
+    }
+    
+    /* Hide mobile-only hidden elements */
+    .hidden-mobile {
+        display: block !important;
+    }
+    
+    .storage-label {
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--text-secondary);
+        padding-left: 4px;
+        margin-bottom: -10px; /* Pull closer to container */
+    }
+
+    .shop-slot {
+        /* 5 items per row in the sidebar */
+        flex: 0 0 calc(20% - 8px);
+    }
+
+    /* Larger Grid on PC */
+    :root {
+        --cell-size: 56px; /* Slightly larger cells for mouse interaction */
+        --gap-size: 8px;
+    }
+
+    /* === Start Screen Adaptation === */
+    .start-content {
+        max-width: 800px;
+    }
+
+    .start-body {
+        display: flex;
+        flex-direction: row;
+        gap: 40px;
+        align-items: flex-start;
+    }
+
+    .start-left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-top: 20px;
+    }
+    
+    .start-right {
+        flex: 1;
+        width: 100%; /* Ensure it takes space */
+    }
+
+    .intro-text {
+        text-align: left;
+        font-size: 16px;
+    }
+    
+    /* Adjust difficulty buttons for side layout */
+    .difficulty-buttons {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .btn-difficulty {
+        padding: 12px 16px; /* Slightly compact */
+    }
+
+    /* Modals */
+    .modal-content:not(.start-content) {
+        max-width: 500px; /* Slightly wider modals */
+    }
+}
+
+/* Large Desktop optimization */
+@media (min-width: 1200px) {
+    .app-container {
+        max-width: 1400px;
+        grid-template-columns: 420px 1fr;
+    }
+    
+    :root {
+        --cell-size: 64px; /* Even larger cells for big screens */
+    }
+}

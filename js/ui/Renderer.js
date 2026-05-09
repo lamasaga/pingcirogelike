@@ -12,7 +12,12 @@ export class Renderer {
         this.elMoney = document.getElementById('money-val');
         this.elScore = document.getElementById('score-val');
         this.elTarget = document.getElementById('target-val');
+        
+        // 商店和备选区容器
         this.elShopContainer = document.getElementById('shop-container');
+        this.elStorageContainer = document.getElementById('storage-container');
+        this.elStorageLabel = document.querySelector('.storage-label');
+
         this.elGridContainer = document.getElementById('grid-container');
         this.elRerollBtn = document.getElementById('btn-reroll');
         this.elSubmitBtn = document.getElementById('btn-submit');
@@ -51,6 +56,15 @@ export class Renderer {
 
         this.dragManager = null; // 稍后注入
         
+        // --- 新增 UI 引用 ---
+        this.elTooltip = document.getElementById('smart-tooltip');
+        this.tooltipTarget = null; // 当前 tooltip 目标
+        
+        // Snapshot Buttons
+        this.elSaveSnapBtn = document.getElementById('btn-save-snap');
+        this.elLoadSnapBtn = document.getElementById('btn-load-snap');
+        this.elSnapMsg = document.getElementById('snap-msg');
+
         // Relic UI Init
         this.relicUI = new RelicUI(relicSystem);
 
@@ -282,6 +296,208 @@ export class Renderer {
                 closeHelp();
             }
         });
+
+        // --- 快照功能事件 ---
+        if (this.elSaveSnapBtn) {
+            this.elSaveSnapBtn.addEventListener('click', () => {
+                // 新逻辑：只保存拼词盘上的布局信息（位置+字母特征）
+                const layout = [];
+                for (let r = 0; r < gridSystem.rows; r++) {
+                    for (let c = 0; c < gridSystem.cols; c++) {
+                        const letter = gridSystem.getLetter(r, c);
+                        if (letter) {
+                            layout.push({
+                                r, c,
+                                char: letter.char,
+                                score: letter.score // 用于精确匹配
+                            });
+                        }
+                    }
+                }
+                
+                localStorage.setItem('gameLayoutSnapshot', JSON.stringify(layout));
+                this.elLoadSnapBtn.disabled = false;
+                this.showSnapMsg('已保存布局');
+            });
+        }
+
+        if (this.elLoadSnapBtn) {
+            // 检查是否有存档
+            if (localStorage.getItem('gameLayoutSnapshot')) {
+                this.elLoadSnapBtn.disabled = false;
+            }
+            
+            this.elLoadSnapBtn.addEventListener('click', () => {
+                const layoutStr = localStorage.getItem('gameLayoutSnapshot');
+                if (!layoutStr) return;
+                
+                try {
+                    const targetLayout = JSON.parse(layoutStr);
+                    
+                    // 1. 收集所有可用字母 (Grid + Storage)
+                    const allLetters = [];
+                    
+                    // 从 Grid 回收
+                    for (let r = 0; r < gridSystem.rows; r++) {
+                        for (let c = 0; c < gridSystem.cols; c++) {
+                            const letter = gridSystem.removeLetter(r, c);
+                            if (letter) allLetters.push(letter);
+                        }
+                    }
+                    
+                    // 从 Storage 回收
+                    // 注意：这里需要清空 gameState.storage，但不能直接赋值 []，因为要保持引用或使用 API
+                    // 我们可以把 storage 里的东西都拿出来，清空 storage 数组
+                    while(gameState.storage.length > 0) {
+                        const letter = gameState.storage.pop();
+                        if (letter) allLetters.push(letter);
+                    }
+                    
+                    // 2. 尝试按照布局还原
+                    let missingCount = 0;
+                    
+                    targetLayout.forEach(item => {
+                        // 在 allLetters 中寻找匹配的字母
+                        // 优先匹配 char 和 score 都相同的
+                        let index = allLetters.findIndex(l => l.char === item.char && l.score === item.score);
+                        
+                        // 如果没找到，尝试只匹配 char (容错)
+                        if (index === -1) {
+                            index = allLetters.findIndex(l => l.char === item.char);
+                        }
+                        
+                        if (index !== -1) {
+                            const letter = allLetters.splice(index, 1)[0];
+                            gridSystem.placeLetter(item.r, item.c, letter);
+                        } else {
+                            missingCount++;
+                        }
+                    });
+                    
+                    // 3. 剩下的字母放回 Storage
+                    allLetters.forEach(letter => {
+                        gameState.addToStorage(letter);
+                    });
+                    
+                    // 4. 刷新 UI
+                    this.renderGrid();
+                    this.renderStats();
+                    this.renderBottomPanel(); // 必须刷新 storage UI
+                    
+                    if (missingCount > 0) {
+                        this.showSnapMsg(`恢复完成 (缺失 ${missingCount} 个字母)`);
+                    } else {
+                        this.showSnapMsg('已恢复布局');
+                    }
+                    
+                } catch (e) {
+                    console.error("Restore failed", e);
+                    this.showSnapMsg('恢复失败');
+                }
+            });
+        }
+        
+        // --- Tooltip 事件代理 ---
+        if (this.elGridContainer) {
+            this.elGridContainer.addEventListener('mousemove', (e) => this.handleTooltip(e));
+            this.elGridContainer.addEventListener('mouseleave', () => this.hideTooltip());
+        }
+    }
+
+    showSnapMsg(msg) {
+        if (!this.elSnapMsg) return;
+        this.elSnapMsg.textContent = msg;
+        this.elSnapMsg.style.opacity = 1;
+        setTimeout(() => {
+            this.elSnapMsg.style.opacity = 0;
+        }, 2000);
+    }
+    
+    handleTooltip(e) {
+        const cell = e.target.closest('.grid-cell');
+        if (!cell) {
+            this.hideTooltip();
+            return;
+        }
+        
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        const letter = gridSystem.getLetter(r, c);
+        
+        if (!letter) {
+            this.hideTooltip();
+            return;
+        }
+
+        // 获取详细计算日志
+        const detailLogs = gridSystem.calculateScore(true);
+        
+        // 找到所有包含当前坐标的日志 (可能属于多个单词)
+        const relevantLogs = detailLogs.filter(log => 
+            log.coords.some(coord => coord.r === r && coord.c === c)
+        );
+
+        if (relevantLogs.length > 0) {
+            this.showTooltip(e, relevantLogs);
+        } else {
+            // 只是单独字母，不是单词
+            // 以后可以在这里显示字母的 buff 状态
+            this.hideTooltip();
+        }
+    }
+
+    showTooltip(e, logs) {
+        if (!this.elTooltip) return;
+        
+        // logs 是数组，包含一个或多个单词的详情
+        let contentHtml = '';
+        
+        logs.forEach((log, index) => {
+            let breakdownHtml = '';
+            if (log.breakdown && log.breakdown.length > 0) {
+                breakdownHtml = '<div class="tooltip-breakdown">';
+                log.breakdown.forEach(item => {
+                    breakdownHtml += `<div class="break-item"><span class="break-desc">${item.desc}</span><span class="break-val">${item.val}</span></div>`;
+                });
+                breakdownHtml += '</div>';
+            }
+            
+            // 如果有多个单词，加分割线
+            if (index > 0) {
+                contentHtml += '<div class="tooltip-divider"></div>';
+            }
+
+            contentHtml += `
+                <div class="tooltip-section">
+                    <div class="tooltip-title">${log.word}${log.meaning ? `<span class="tooltip-meaning">(${log.meaning})</span>` : ''}</div>
+                    <div class="tooltip-score">基础分: ${log.baseScore.toFixed(0)}</div>
+                    ${breakdownHtml}
+                    <div class="tooltip-total">总计: ${log.totalScore} 分</div>
+                </div>
+            `;
+        });
+
+        this.elTooltip.innerHTML = contentHtml;
+        this.elTooltip.classList.remove('hidden');
+        
+        // 定位 (跟随鼠标但有偏移)
+        const offset = 15;
+        let left = e.pageX + offset;
+        let top = e.pageY + offset;
+        
+        // 边界检查 (简单版)
+        if (left + 200 > window.innerWidth) left = e.pageX - 210;
+        
+        // 高度检查比较复杂，因为内容变高了。先简单处理底部溢出
+        const tooltipHeight = this.elTooltip.offsetHeight || 200; // 估算
+        if (top + tooltipHeight > window.innerHeight) top = e.pageY - tooltipHeight - 10;
+
+        this.elTooltip.style.left = `${left}px`;
+        this.elTooltip.style.top = `${top}px`;
+    }
+
+    hideTooltip() {
+        if (this.elTooltip) this.elTooltip.classList.add('hidden');
     }
 
     showDictionaryModal() {
@@ -418,48 +634,53 @@ export class Renderer {
             shopTab.classList.add('active');
             storageTab.classList.remove('active');
             rerollBtn.classList.remove('hidden'); // 显示刷新按钮
+            
+            // Mobile: Show Shop, Hide Storage
+            if (this.elShopContainer) this.elShopContainer.classList.remove('hidden-mobile');
+            if (this.elStorageContainer) this.elStorageContainer.classList.add('hidden-mobile');
+            if (this.elStorageLabel) this.elStorageLabel.classList.add('hidden-mobile');
+            
         } else {
             shopTab.classList.remove('active');
             storageTab.classList.add('active');
             rerollBtn.classList.add('hidden'); // 隐藏刷新按钮
+            
+            // Mobile: Hide Shop, Show Storage
+            if (this.elShopContainer) this.elShopContainer.classList.add('hidden-mobile');
+            if (this.elStorageContainer) this.elStorageContainer.classList.remove('hidden-mobile');
+            // 注意：storage label 本身就是 hidden-mobile 的，这里不需要额外操作，因为 mobile view 下不显示 label
         }
 
         this.renderBottomPanel();
     }
 
     renderBottomPanel() {
-        this.elShopContainer.innerHTML = '';
-        
-        let items = [];
-        let source = '';
-
-        if (this.currentView === 'shop') {
-            items = shopSystem.stock;
-            source = 'shop';
-        } else {
-            items = gameState.storage;
-            source = 'storage';
+        // 渲染商店 (如果有容器)
+        if (this.elShopContainer) {
+             this.renderContainer(this.elShopContainer, shopSystem.stock, 'shop');
         }
 
+        // 渲染备选区 (如果有容器)
+        if (this.elStorageContainer) {
+             this.renderContainer(this.elStorageContainer, gameState.storage, 'storage');
+        }
+    }
+
+    renderContainer(container, items, source) {
+        container.innerHTML = '';
+        
         items.forEach((letter, index) => {
             const slot = document.createElement('div');
-            slot.className = 'shop-slot'; // 复用样式
+            slot.className = 'shop-slot'; 
             
             if (letter) {
                 const card = this.createLetterCard(letter);
-                
-                // 如果是商店，显示价格 (可选，但为了简洁目前省略，用户知道是 $3)
-                if (source === 'shop') {
-                    // card.title = "Cost: $3";
-                }
-
-                // 绑定拖拽
                 this.attachDragEvents(card, source, index, letter);
                 slot.appendChild(card);
             } else {
                 slot.classList.add('empty');
             }
-            this.elShopContainer.appendChild(slot);
+            container.appendChild(slot);
         });
     }
 

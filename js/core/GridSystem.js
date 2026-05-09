@@ -126,31 +126,39 @@ class GridSystem {
         if (relicSystem.hasRelic('A03') && ['J','K','Q','X','Z'].includes(char)) baseAdd += 5;
         if (relicSystem.hasRelic('A04') && ['E','S','T','R','N'].includes(char)) baseAdd += 2;
         if (relicSystem.hasRelic('A05') && char === 'A') base = 10; // Override
-        if (relicSystem.hasRelic('A06') && char === 'E') baseAdd += 5;
+        if (relicSystem.hasRelic('A06') && char === 'U') baseAdd += 5; // A06 白银 U
+        if (relicSystem.hasRelic('A08') && ['I','O'].includes(char)) baseAdd += 3;
+        if (relicSystem.hasRelic('A09') && ['N','M','L'].includes(char)) baseAdd += 4;
+        if (relicSystem.hasRelic('A11') && ['Y','W','V','H'].includes(char)) baseAdd += 3;
+
+        // A10: Context Dependent BaseAdd (Touching Edge)
+        if (context.isEdge && relicSystem.hasRelic('A10')) baseAdd += 3;
 
         // --- Context Dependent Multipliers ---
         // A07: Duplicate in word
         if (context.isDuplicate && relicSystem.hasRelic('A07')) percentMult *= 2;
         
         // C02: Cross letter
-        if (context.isCross && relicSystem.hasRelic('C02')) percentMult *= 3;
+        if (context.isCross && relicSystem.hasRelic('C02')) percentMult *= 4;
 
         // D06: First letter
-        if (context.isFirst && relicSystem.hasRelic('D06')) percentMult *= 2;
+        if (context.isFirst && relicSystem.hasRelic('D06')) percentMult *= 3;
 
         // D07: Last letter
-        if (context.isLast && relicSystem.hasRelic('D07')) percentMult *= 2;
+        if (context.isLast && relicSystem.hasRelic('D07')) percentMult *= 3;
 
         return (base + baseAdd) * percentMult + totalAdd;
     }
 
     /**
      * 计算当前总分
-     * 遵循 3层级公式
+     * @param {boolean} detailMode - 是否返回详细计分日志 (用于 Tooltip)
+     * @returns {number|Array} - 总分，或者包含详细信息的数组
      */
-    calculateScore() {
+    calculateScore(detailMode = false) {
         this.scanGrid();
         let totalScore = 0;
+        const detailLogs = []; // 用于存储每个单词的计分详情
         
         // 统计交叉引用计数
         const coordUsage = new Map(); 
@@ -165,6 +173,14 @@ class GridSystem {
             const word = wordItem.word;
             const len = word.length;
             const coords = wordItem.coords;
+            
+            // 详细日志对象
+            const log = {
+                word: word,
+                meaning: Dictionary.getMeaning(word), // 获取中文释义
+                baseScore: 0,
+                breakdown: [] // { desc: string, val: string }
+            };
             
             // --- Layer 2: Word Score ---
             // WordScore = (Sum(LetterFinal) + RootWordBuff) * (Length + LengthBuff) * WordMult
@@ -183,13 +199,15 @@ class GridSystem {
                 const cell = this.grid[coord.r][coord.c];
                 const letter = cell.letter;
                 const isCross = coordUsage.get(`${coord.r},${coord.c}`) > 1;
-                
+                const isEdge = coord.r === 0 || coord.r === this.rows - 1 || coord.c === 0 || coord.c === this.cols - 1;
+
                 // 字母上下文
                 const context = {
                     isCross: isCross,
                     isFirst: index === 0,
                     isLast: index === len - 1,
-                    isDuplicate: charCounts[letter.char] >= 2
+                    isDuplicate: charCounts[letter.char] >= 2,
+                    isEdge: isEdge
                 };
 
                 // 获取字母有效分
@@ -197,8 +215,8 @@ class GridSystem {
 
                 // 应用地块倍率 (DL/TL) - 视为对该位置字母分数的乘法修正
                 const tileType = cell.tileType;
-                if (tileType === 'DL') letterScore *= 2;
-                if (tileType === 'TL') letterScore *= 3;
+                if (tileType === 'DL') { letterScore *= 2; }
+                if (tileType === 'TL') { letterScore *= 3; }
 
                 sumLetterFinal += letterScore;
 
@@ -206,71 +224,136 @@ class GridSystem {
                 if (tileType === 'DW') wordMult *= 2;
                 if (tileType === 'TW') wordMult *= 3;
             });
+            
+            log.baseScore = sumLetterFinal;
 
             // 2. 应用词根加值 (RootWordBuff)
-            if (relicSystem.hasRelic('B04') && len % 2 !== 0) rootWordBuff += 5;
-            if (relicSystem.hasRelic('C05') && this.spansCenter(wordItem)) rootWordBuff += 10;
-            if (relicSystem.hasRelic('D01') && this.isVowel(word[0])) rootWordBuff += 5;
-            if (relicSystem.hasRelic('D08') && word.endsWith('ER')) rootWordBuff += 8;
-            // E03 中心灯塔 (+20) - 这里处理为 RootWordBuff
-            // if (relicSystem.hasRelic('E03') && this.passesCenter(wordItem)) rootWordBuff += 20;
+            if (relicSystem.hasRelic('B04') && len % 2 !== 0) { rootWordBuff += 8; if(detailMode) log.breakdown.push({desc:'奇数魔杖', val:'+8'}); }
+            if (relicSystem.hasRelic('C05') && this.spansCenter(wordItem)) { rootWordBuff += 10; if(detailMode) log.breakdown.push({desc:'桥梁工程师', val:'+10'}); }
+            if (relicSystem.hasRelic('D01') && this.isVowel(word[0])) { rootWordBuff += 8; if(detailMode) log.breakdown.push({desc:'起跑器', val:'+8'}); }
+            if (relicSystem.hasRelic('D08') && word.endsWith('ER')) { rootWordBuff += 8; if(detailMode) log.breakdown.push({desc:'ER人事局', val:'+8'}); }
+            if (relicSystem.hasRelic('D09') && word.startsWith('UN')) { rootWordBuff += 8; if(detailMode) log.breakdown.push({desc:'没UN啊', val:'+8'}); }
 
             // 3. 应用单词倍率 (WordMult)
             // B类：长度策略
-            if (relicSystem.hasRelic('B01') && len >= 2 && len <= 3) wordMult *= 1.5;
-            if (relicSystem.hasRelic('B02') && len >= 5 && len <= 6) wordMult *= 1.5;
-            if (relicSystem.hasRelic('B03') && len >= 7) wordMult *= 2.5;
-            if (relicSystem.hasRelic('B05') && len % 2 === 0) wordMult += 0.25;
-            if (relicSystem.hasRelic('B06') && [1,2,3,5,8].includes(len)) wordMult *= 2;
+            if (relicSystem.hasRelic('B01') && len >= 2 && len <= 3) { wordMult *= 3; if(detailMode) log.breakdown.push({desc:'锋利短剑', val:'x3'}); }
+            if (relicSystem.hasRelic('B02') && len >= 5 && len <= 6) { wordMult *= 2; if(detailMode) log.breakdown.push({desc:'长柄战斧', val:'x2'}); }
+            if (relicSystem.hasRelic('B03') && len >= 7) { wordMult *= 1.5; if(detailMode) log.breakdown.push({desc:'冲锋长枪', val:'x1.5'}); }
+            if (relicSystem.hasRelic('B05') && len % 2 === 0) { wordMult += 0.5; if(detailMode) log.breakdown.push({desc:'偶数大盾', val:'+0.5x'}); }
             
             // C类：结构
-            if (relicSystem.hasRelic('C06') && this.touchesEdge(wordItem)) wordMult *= 2;
+            if (relicSystem.hasRelic('C06') && this.touchesEdge(wordItem)) { wordMult *= 2; if(detailMode) log.breakdown.push({desc:'角落蜘蛛', val:'x2'}); }
 
             // D类：词缀
-            if (relicSystem.hasRelic('D02') && word.endsWith('S')) wordMult *= 1.2;
-            if (relicSystem.hasRelic('D03') && word.endsWith('ING')) wordMult *= 1.5;
-            if (relicSystem.hasRelic('D04') && ['J','K','Q','X','Z'].includes(word[0])) wordMult *= 3;
-            if (relicSystem.hasRelic('D05') && len > 1 && word === word.split('').reverse().join('')) wordMult *= 5;
-
-            // F类：特殊
-            if (relicSystem.hasRelic('F05')) {
-                 const rand = this.getDeterministicRandom(wordItem);
-                 if (rand > 0.5) wordMult *= 1.5;
-                 else wordMult *= 0.8;
-            }
+            if (relicSystem.hasRelic('D02') && word.endsWith('S')) { wordMult *= 1.25; if(detailMode) log.breakdown.push({desc:'终结技', val:'x1.25'}); }
+            if (relicSystem.hasRelic('D03') && word.endsWith('ING')) { wordMult *= 2; if(detailMode) log.breakdown.push({desc:'押韵字典', val:'x2'}); }
+            if (relicSystem.hasRelic('D04') && ['J','K','Q','X','Z'].includes(word[0])) { wordMult *= 2; if(detailMode) log.breakdown.push({desc:'贵族头冠', val:'x2'}); }
+            if (relicSystem.hasRelic('D05') && len > 1 && word === word.split('').reverse().join('')) { wordMult *= 5; if(detailMode) log.breakdown.push({desc:'回文镜', val:'x5'}); }
+            if (relicSystem.hasRelic('D10') && word.endsWith('LY')) { wordMult *= 1.25; if(detailMode) log.breakdown.push({desc:'懒得LY你', val:'x1.25'}); }
 
             // 计算单词层级分数
             const wordScore = (sumLetterFinal + rootWordBuff) * (len + lengthBuff) * wordMult;
+            
+            // 记录基础倍率信息 (始终显示长度倍率)
+            if(detailMode) {
+                // 将长度倍率作为第一项插入 breakdown
+                const lengthVal = (len + lengthBuff).toFixed(1);
+                // 只有当实际上有长度倍率时才显示 (len > 1 或有 buff)
+                if (len > 1 || lengthBuff > 0) {
+                    log.breakdown.unshift({desc: `长度倍率(${len})`, val: `x${lengthVal}`});
+                }
+            }
 
             // --- Layer 3: Intersection Bonus ---
             // FinalScore = WordScore * (CrossCount * CrossCountBuff + IndependentCrossMult)
-            // 基础：0交叉=1倍, 1交叉=2倍, 2交叉=3倍...
+            // 基础：0交叉=1倍, 1交叉=2倍, 2交叉=3倍... (CrossCount * 1 + 1)
             
             let crossCount = 0;
-            let crossCountBuff = 1;  // 基础值为1，每个交叉点提供 +1 倍率
+            let crossCountBuff = 1.0;  // 基础值为1，每个交叉点提供 +1 倍率
             let independentCrossMult = 1.0;  // 独立基础倍率
             let hasVowelCross = false;
+            let hasConsonantCross = false; // For C03
 
-            coords.forEach(coord => {
-                if (coordUsage.get(`${coord.r},${coord.c}`) > 1) {
-                    crossCount++;
-                    if (this.isVowel(this.grid[coord.r][coord.c].letter.char)) {
-                        hasVowelCross = true;
-                    }
+            // C10: 独立日 - 强制 CrossCount = 2
+            const independentDay = relicSystem.hasRelic('C10');
+
+            if (independentDay) {
+                crossCount = 2;
+                if(detailMode) log.breakdown.push({desc:'独立日', val:'交叉=2'});
+            } else {
+                // C08: 天地大循环 - CrossCount + 2
+                if (relicSystem.hasRelic('C08')) {
+                    crossCount += 2;
+                    if(detailMode) log.breakdown.push({desc:'天地大循环', val:'交叉+2'});
                 }
-            });
 
-            // C01 交通指挥棒：每个交叉点额外 +0.5 倍率
-            if (relicSystem.hasRelic('C01')) crossCountBuff += 0.5;
-            // C04 紧密连接：与元音交叉时，独立倍率 +0.5
-            if (relicSystem.hasRelic('C04') && hasVowelCross) independentCrossMult += 0.5;
+                coords.forEach(coord => {
+                    if (coordUsage.get(`${coord.r},${coord.c}`) > 1) {
+                        crossCount++;
+                        const letterChar = this.grid[coord.r][coord.c].letter.char;
+                        if (this.isVowel(letterChar)) {
+                            hasVowelCross = true;
+                        } else {
+                            hasConsonantCross = true;
+                        }
+                    }
+                });
+            }
+
+            // C09: 交头接耳 (Head and Tail are cross points)
+            // 需检查首尾是否为交叉点
+            const isHeadCross = coordUsage.get(`${coords[0].r},${coords[0].c}`) > 1;
+            const isTailCross = coordUsage.get(`${coords[len-1].r},${coords[len-1].c}`) > 1;
+            
+            if (relicSystem.hasRelic('C09') && isHeadCross && isTailCross) {
+                crossCountBuff += 0.5;
+                if(detailMode) log.breakdown.push({desc:'交头接耳', val:'+0.5/交'});
+            }
+
+            // C01 交通指挥棒：每个交叉点额外 +0.33 倍率 -> CrossCountBuff + 0.33
+            if (relicSystem.hasRelic('C01')) { 
+                crossCountBuff += 0.33; 
+                if(detailMode && crossCount > 0) log.breakdown.push({desc:'指挥棒', val:'+0.33/交'}); 
+            }
+
+            // B06 4者为大：长度为 4 的单词，交叉点倍率修正 +0.5
+            if (relicSystem.hasRelic('B06') && len === 4) {
+                crossCountBuff += 0.5;
+                if(detailMode && crossCount > 0) log.breakdown.push({desc:'4者为大', val:'+0.5/交'});
+            }
+
+            // C04 紧密元音：与元音交叉时，独立倍率 +0.5
+            if (relicSystem.hasRelic('C04') && hasVowelCross) { 
+                independentCrossMult += 0.5; 
+                if(detailMode) log.breakdown.push({desc:'紧密元音', val:'+0.5x'}); 
+            }
+            
+            // C03 连接辅音：与辅音交叉时，独立倍率 +0.5
+            if (relicSystem.hasRelic('C03') && hasConsonantCross) { 
+                independentCrossMult += 0.5; 
+                if(detailMode) log.breakdown.push({desc:'连接辅音', val:'+0.5x'}); 
+            }
 
             const intersectionMult = (crossCount * crossCountBuff) + independentCrossMult;
             
+            if (detailMode && crossCount > 0) {
+                 log.breakdown.push({desc: `交叉(${crossCount})`, val: `x${intersectionMult.toFixed(1)}`});
+            } else if (detailMode && independentCrossMult > 1.0) {
+                 // Even if crossCount is 0 (unlikely if C04/C03 triggers, but possible if counting logic changes), show independent mult
+                 log.breakdown.push({desc: `交叉加成`, val: `x${intersectionMult.toFixed(1)}`});
+            }
+
             const finalScore = wordScore * intersectionMult;
-            totalScore += Math.floor(finalScore);
+            const finalScoreInt = Math.floor(finalScore);
+            
+            log.totalScore = finalScoreInt;
+            log.coords = coords; // 方便反查
+            detailLogs.push(log);
+            
+            totalScore += finalScoreInt;
         });
         
+        if (detailMode) return detailLogs;
         return totalScore;
     }
     
@@ -306,15 +389,93 @@ class GridSystem {
         return wordItem.coords.some(c => c.r === 0 || c.r === this.rows - 1 || c.c === 0 || c.c === this.cols - 1);
     }
 
-    // 辅助：确定性随机 (for F05)
-    getDeterministicRandom(wordItem) {
-        const hashStr = wordItem.word + wordItem.coords[0].r + wordItem.coords[0].c;
-        let hash = 0;
-        for (let i = 0; i < hashStr.length; i++) {
-            hash = ((hash << 5) - hash) + hashStr.charCodeAt(i);
-            hash |= 0;
+    // --- 快照功能 ---
+    getSnapshot() {
+        return JSON.stringify(this.grid);
+    }
+
+    restoreSnapshot(jsonStr) {
+        if (!jsonStr) return false;
+        try {
+            this.grid = JSON.parse(jsonStr);
+            this.validWords = []; // reset valid words
+            this.scanGrid(); // rescan
+            return true;
+        } catch (e) {
+            console.error("Failed to restore snapshot:", e);
+            return false;
         }
-        return Math.abs(hash % 100) / 100;
+    }
+
+    // 获取网格上的所有字母（用于快照恢复前的回收）
+    getAllLetters() {
+        const letters = [];
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                if (this.grid[r][c].letter) {
+                    letters.push(this.grid[r][c].letter);
+                }
+            }
+        }
+        return letters;
+    }
+
+    // 清空网格并返回所有字母
+    clearGridAndCollectLetters() {
+        const letters = this.getAllLetters();
+        this.clear();
+        return letters;
+    }
+
+    // 从快照恢复网格，并从提供的字母池中扣除
+    // 返回未使用的字母列表
+    placeLettersFromSnapshot(snapshotGrid, availableLetters) {
+        // 创建字母池的副本，方便查找和移除
+        // 为了匹配具体的字母实例（可能带有特定属性），最好是引用匹配
+        // 但快照中只保存了 grid 数据结构，我们需要匹配 storage 中的字母
+        
+        // 策略：
+        // 1. 统计快照中需要的每种字母（Char）的数量
+        // 2. 从 availableLetters 中按 Char 查找并取出字母对象
+        // 3. 如果 availableLetters 不够（理论上不应该，因为是回滚），创建一个新的 Letter 对象（兜底）
+        
+        // 注意：snapshotGrid 是 JSON.parse 出来的对象结构，里面的 letter 是 plain object，不是 Letter 实例
+        // 如果系统强依赖 Letter 实例的方法（目前好像没有，只是 data container），那 plain object 也行
+        // 但最好保持一致性。
+        
+        // 这里的 availableLetters 是真正的 Letter 实例列表
+        
+        this.clear();
+        const unusedLetters = [...availableLetters];
+        
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const cellData = snapshotGrid[r][c];
+                if (cellData && cellData.letter) {
+                    const char = cellData.letter.char;
+                    // 尝试从 pool 中找到一个 char
+                    const idx = unusedLetters.findIndex(l => l.char === char);
+                    let letterToPlace;
+                    
+                    if (idx !== -1) {
+                        letterToPlace = unusedLetters[idx];
+                        unusedLetters.splice(idx, 1);
+                    } else {
+                        // 兜底：如果找不到（比如 bug 导致丢失），用快照里的数据重建
+                        // 注意：快照里的 letter 是 plain object
+                         letterToPlace = { ...cellData.letter };
+                    }
+                    
+                    this.grid[r][c].letter = letterToPlace;
+                    this.grid[r][c].tileType = cellData.tileType; // 恢复地块类型（如果有）
+                } else if (cellData && cellData.tileType) {
+                    this.grid[r][c].tileType = cellData.tileType;
+                }
+            }
+        }
+        
+        this.scanGrid();
+        return unusedLetters;
     }
 
     clear() {

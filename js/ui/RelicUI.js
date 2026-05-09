@@ -25,9 +25,17 @@ export class RelicUI {
         options.forEach(relic => {
             const card = document.createElement('div');
             card.className = `relic-card ${relic.rarity.toLowerCase()}`;
+            
+            let iconContent;
+            if (relic.icon) {
+                iconContent = `<img src="${relic.icon}" class="relic-icon-img" alt="${relic.name}">`;
+            } else {
+                iconContent = `<span class="icon-text">${this.getIconForRelic(relic)}</span>`;
+            }
+
             card.innerHTML = `
                 <div class="relic-icon-wrapper">
-                    <span class="icon-text">${this.getIconForRelic(relic)}</span>
+                    ${iconContent}
                 </div>
                 <div class="relic-info">
                     <h3 class="relic-name">
@@ -68,7 +76,13 @@ export class RelicUI {
             const slot = document.createElement('div');
             slot.className = `trinket-slot has-relic ${relic.rarity.toLowerCase()}`;
             slot.title = `${relic.name}\n${relic.description}`;
-            slot.innerHTML = `<span class="icon-text">${this.getIconForRelic(relic)}</span>`;
+            
+            if (relic.icon) {
+                slot.innerHTML = `<img src="${relic.icon}" class="trinket-icon-img" alt="${relic.name}">`;
+            } else {
+                slot.innerHTML = `<span class="icon-text">${this.getIconForRelic(relic)}</span>`;
+            }
+            
             this.panel.appendChild(slot);
         });
 
