@@ -38,14 +38,27 @@ $sshTarget = ('{0}@{1}' -f $RemoteUser, $ServerHost)
 $extractLocal = Join-Path $PSScriptRoot 'remote-extract.sh'
 if (-not (Test-Path -LiteralPath $extractLocal)) { throw "Missing deploy/remote-extract.sh" }
 
-Write-Host ("Upload archive -> {0}:{1}" -f $sshTarget, $ArchiveRemote)
-scp -i $KeyPath $archiveLocal ($sshTarget + ":" + $ArchiveRemote)
+# 使用系统 OpenSSH，避免 PATH 上其它 scp（如旧版/第三方）忽略 -i 导致走密码认证
+$opensshBin = Join-Path $env:SystemRoot "System32\OpenSSH"
+$scpExe = if (Test-Path (Join-Path $opensshBin "scp.exe")) { Join-Path $opensshBin "scp.exe" } else { "scp" }
+$sshExe = if (Test-Path (Join-Path $opensshBin "ssh.exe")) { Join-Path $opensshBin "ssh.exe" } else { "ssh" }
+
+# IdentitiesOnly：只用 -i 指定的私钥；BatchMode：密钥失败时立即报错，不交互问密码
+$sshCommon = @(
+    "-o", "IdentitiesOnly=yes",
+    "-o", "BatchMode=yes",
+    "-o", "StrictHostKeyChecking=accept-new",
+    "-i", $KeyPath
+)
+
+Write-Host ("Upload archive -> {0}:{1} (using {2})" -f $sshTarget, $ArchiveRemote, $scpExe)
+& $scpExe @sshCommon $archiveLocal ($sshTarget + ":" + $ArchiveRemote)
 
 Write-Host ("Upload script -> {0}:/tmp/pingchi-remote-extract.sh" -f $sshTarget)
-scp -i $KeyPath $extractLocal ($sshTarget + ":/tmp/pingchi-remote-extract.sh")
+& $scpExe @sshCommon $extractLocal ($sshTarget + ":/tmp/pingchi-remote-extract.sh")
 
 Write-Host "Run remote extract (strip CRLF from script if needed)..."
-ssh -i $KeyPath $sshTarget ("sed -i 's/\r$//' /tmp/pingchi-remote-extract.sh && bash /tmp/pingchi-remote-extract.sh " + $ArchiveRemote)
+& $sshExe @sshCommon $sshTarget ("sed -i 's/\r$//' /tmp/pingchi-remote-extract.sh && bash /tmp/pingchi-remote-extract.sh " + $ArchiveRemote)
 
 Write-Host ""
 Write-Host ("Done. Try: http://{0}/pingchi/" -f $ServerHost)
