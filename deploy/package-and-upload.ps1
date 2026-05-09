@@ -36,8 +36,8 @@ scp -i $KeyPath $zipLocal ($sshTarget + ":" + $ZipRemote)
 Write-Host ("Upload script -> {0}:/tmp/pingchi-remote-extract.sh" -f $sshTarget)
 scp -i $KeyPath $extractLocal ($sshTarget + ":/tmp/pingchi-remote-extract.sh")
 
-Write-Host "Run remote extract..."
-ssh -i $KeyPath $sshTarget ("bash /tmp/pingchi-remote-extract.sh " + $ZipRemote)
+Write-Host "Run remote extract (strip CRLF from script if uploaded from Windows)..."
+ssh -i $KeyPath $sshTarget ("sed -i 's/\r$//' /tmp/pingchi-remote-extract.sh && bash /tmp/pingchi-remote-extract.sh " + $ZipRemote)
 
 Write-Host ""
 Write-Host ("Done. Try: http://{0}/pingchi/" -f $ServerHost)
